@@ -48,6 +48,38 @@ str(separation)
       document.getElementById("output").innerText = `Separation: ${result}`;
     }
   </script>
+
+<hr>
+<h2>Dispersion Delay Calculator</h2>
+<p>Enter two frequencies (in MHz) and a DM value (in pc/cm³):</p>
+
+<label>Frequency 1: <input id="freq1" type="number" step="any"></label><br>
+<label>Frequency 2: <input id="freq2" type="number" step="any"></label><br>
+<label>DM: <input id="dm" type="number" step="any"></label><br>
+
+<button onclick="calcDispersion()">Calculate Delay</button>
+<div id="dispersionOutput"></div>
+
+<script>
+  async function calcDispersion() {
+    const f1 = parseFloat(document.getElementById("freq1").value);
+    const f2 = parseFloat(document.getElementById("freq2").value);
+    const dm = parseFloat(document.getElementById("dm").value);
+
+    const code = `
+f1 = ${f1}
+f2 = ${f2}
+dm = ${dm}
+delay_ms = 4.15e3 * dm * (1.0 / f1**2 - 1.0 / f2**2)
+f"Delay: {delay_ms:.3f} ms"
+    `;
+
+    let pyodide = await pyodideReadyPromise;
+    const result = await pyodide.runPythonAsync(code);
+    document.getElementById("dispersionOutput").innerText = result;
+  }
+</script>
+
 </body>
 </html>
 
