@@ -51,7 +51,7 @@ str(separation)
 
 <hr>
 <h2>Dispersion Delay Calculator</h2>
-<p>Enter two frequencies (in MHz) and a DM value (in pc/cm³):</p>
+<p>Enter two frequencies (in GHz) and a DM value (in pc/cm³):</p>
 
 <label>Frequency 1: <input id="freq1" type="number" step="any"></label><br>
 <label>Frequency 2: <input id="freq2" type="number" step="any"></label><br>
@@ -70,7 +70,7 @@ str(separation)
 f1 = ${f1}
 f2 = ${f2}
 dm = ${dm}
-delay_ms = 4.15e3 * dm * (1.0 / f1**2 - 1.0 / f2**2)
+delay_ms = 4.15 * dm * (1.0 / f1**2 - 1.0 / f2**2)
 f"Delay: {delay_ms:.3f} ms"
     `;
 
