@@ -1,4 +1,53 @@
-<a href="https://mybinder.org/v2/gh/ReshmaAnnaThomas/astro_calculator/HEAD?urlpath=voila/render/dispersion_delay.ipynb" target="_blank">
-  Open Dispersion Delay Calculator
-</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Angular Separation Calculator</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input { margin: 5px 0; }
+    #output { margin-top: 15px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Angular Separation Calculator</h1>
+  <p>Enter coordinates in degrees:</p>
+  
+  <label>RA1: <input id="ra1" type="number" step="any"></label><br>
+  <label>DEC1: <input id="dec1" type="number" step="any"></label><br>
+  <label>RA2: <input id="ra2" type="number" step="any"></label><br>
+  <label>DEC2: <input id="dec2" type="number" step="any"></label><br>
+  
+  <button onclick="calculate()">Calculate Separation</button>
+  <div id="output"></div>
+
+  <script>
+    let pyodideReadyPromise = loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/" });
+
+    async function calculate() {
+      const ra1 = parseFloat(document.getElementById("ra1").value);
+      const dec1 = parseFloat(document.getElementById("dec1").value);
+      const ra2 = parseFloat(document.getElementById("ra2").value);
+      const dec2 = parseFloat(document.getElementById("dec2").value);
+
+      const code = `
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+
+coord1 = SkyCoord(ra=${ra1} * u.deg, dec=${dec1} * u.deg)
+coord2 = SkyCoord(ra=${ra2} * u.deg, dec=${dec2} * u.deg)
+
+separation = coord1.separation(coord2)
+str(separation)
+      `;
+
+      let pyodide = await pyodideReadyPromise;
+      await pyodide.loadPackage("astropy");
+      const result = await pyodide.runPythonAsync(code);
+      document.getElementById("output").innerText = `Separation: ${result}`;
+    }
+  </script>
+</body>
+</html>
 
