@@ -2,24 +2,66 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Angular & 3D Separation Calculator</title>
+  <title>Astronomical Calculators</title>
   <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    input, select { margin: 5px 0; width: 100%; }
+    button { margin: 10px 0; }
+    .section { margin-top: 30px; }
+    .output { font-weight: bold; margin-top: 10px; }
+  </style>
 </head>
 <body>
-  <h1>Angular Separation Calculator</h1>
+  <h1>Astronomical Calculators</h1>
 
-  <label>RA1: <input id="ra1" type="number" step="any"></label><br>
-  <label>DEC1: <input id="dec1" type="number" step="any"></label><br>
-  <label>RA2: <input id="ra2" type="number" step="any"></label><br>
-  <label>DEC2: <input id="dec2" type="number" step="any"></label><br>
+  <!-- Angular Separation -->
+  <div class="section">
+    <h2>Angular Separation</h2>
+    <label>RA1 (deg): <input id="ra1" type="number" step="any"></label><br>
+    <label>DEC1 (deg): <input id="dec1" type="number" step="any"></label><br>
+    <label>RA2 (deg): <input id="ra2" type="number" step="any"></label><br>
+    <label>DEC2 (deg): <input id="dec2" type="number" step="any"></label><br>
+    <button onclick="calculateAngular()">Calculate Separation</button>
+    <div id="angularOutput" class="output"></div>
+  </div>
 
-  <button onclick="calculate()">Calculate Separation</button>
-  <div id="output"></div>
+  <!-- 3D Separation -->
+  <div class="section">
+    <h2>3D Separation</h2>
+    <label>Input format:
+      <select id="coordFormat">
+        <option value="deg">Degrees</option>
+        <option value="hms_dms">HMS / DMS</option>
+      </select>
+    </label><br>
+
+    <label>RA1: <input id="ra1_3d" type="text"></label>
+    <label>DEC1: <input id="dec1_3d" type="text"></label>
+    <label>Distance1 (kpc): <input id="dist1_3d" type="number" step="any"></label><br>
+
+    <label>RA2: <input id="ra2_3d" type="text"></label>
+    <label>DEC2: <input id="dec2_3d" type="text"></label>
+    <label>Distance2 (kpc): <input id="dist2_3d" type="number" step="any"></label><br>
+
+    <button onclick="calculateSeparation3D()">Calculate 3D Separation</button>
+    <div id="separation3dOutput" class="output"></div>
+  </div>
+
+  <!-- Dispersion Delay -->
+  <div class="section">
+    <h2>Dispersion Delay</h2>
+    <label>Frequency 1 (GHz): <input id="freq1" type="number" step="any"></label><br>
+    <label>Frequency 2 (GHz): <input id="freq2" type="number" step="any"></label><br>
+    <label>DM (pc/cm³): <input id="dm" type="number" step="any"></label><br>
+    <button onclick="calcDispersion()">Calculate Delay</button>
+    <div id="dispersionOutput" class="output"></div>
+  </div>
 
   <script>
     let pyodideReadyPromise = loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/" });
 
-    async function calculate() {
+    async function calculateAngular() {
       const ra1 = parseFloat(document.getElementById("ra1").value);
       const dec1 = parseFloat(document.getElementById("dec1").value);
       const ra2 = parseFloat(document.getElementById("ra2").value);
@@ -28,17 +70,59 @@
       const code = `
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-
 c1 = SkyCoord(ra=${ra1} * u.deg, dec=${dec1} * u.deg)
 c2 = SkyCoord(ra=${ra2} * u.deg, dec=${dec2} * u.deg)
-sep = c1.separation(c2)
-str(sep)
+str(c1.separation(c2))
       `;
-
       let pyodide = await pyodideReadyPromise;
       await pyodide.loadPackage("astropy");
       const result = await pyodide.runPythonAsync(code);
-      document.getElementById("output").innerText = `Separation: ${result}`;
+      document.getElementById("angularOutput").innerText = "Angular Separation: " + result;
+    }
+
+    async function calculateSeparation3D() {
+      const format = document.getElementById("coordFormat").value;
+      const ra1 = document.getElementById("ra1_3d").value.trim();
+      const dec1 = document.getElementById("dec1_3d").value.trim();
+      const dist1 = parseFloat(document.getElementById("dist1_3d").value);
+      const ra2 = document.getElementById("ra2_3d").value.trim();
+      const dec2 = document.getElementById("dec2_3d").value.trim();
+      const dist2 = parseFloat(document.getElementById("dist2_3d").value);
+
+      const code = `
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+
+if "${format}" == "deg":
+    c1 = SkyCoord(ra=float("${ra1}") * u.deg, dec=float("${dec1}") * u.deg, distance=${dist1} * u.kpc)
+    c2 = SkyCoord(ra=float("${ra2}") * u.deg, dec=float("${dec2}") * u.deg, distance=${dist2} * u.kpc)
+else:
+    c1 = SkyCoord(ra="${ra1}", dec="${dec1}", unit=(u.hourangle, u.deg), distance=${dist1} * u.kpc)
+    c2 = SkyCoord(ra="${ra2}", dec="${dec2}", unit=(u.hourangle, u.deg), distance=${dist2} * u.kpc)
+
+round(c1.separation_3d(c2).to(u.kpc).value, 4)
+      `;
+      let pyodide = await pyodideReadyPromise;
+      await pyodide.loadPackage("astropy");
+      const result = await pyodide.runPythonAsync(code);
+      document.getElementById("separation3dOutput").innerText = "3D Separation: " + result + " kpc";
+    }
+
+    async function calcDispersion() {
+      const f1 = parseFloat(document.getElementById("freq1").value);
+      const f2 = parseFloat(document.getElementById("freq2").value);
+      const dm = parseFloat(document.getElementById("dm").value);
+
+      const code = `
+f1 = ${f1}
+f2 = ${f2}
+dm = ${dm}
+delay_ms = 4.15 * dm * (1.0 / f1**2 - 1.0 / f2**2)
+f"Dispersion Delay: {delay_ms:.3f} ms"
+      `;
+      let pyodide = await pyodideReadyPromise;
+      const result = await pyodide.runPythonAsync(code);
+      document.getElementById("dispersionOutput").innerText = result;
     }
   </script>
 </body>
